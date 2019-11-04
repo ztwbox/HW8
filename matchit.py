@@ -42,6 +42,7 @@ class MatchGame(object):
     counter = 0
     delay = 300
     click = 0
+    matched = 0
     def __init__(self, parent, player_color, folder, delay):
         parent.title('Match it!')
         self.parent = parent
@@ -62,10 +63,10 @@ class MatchGame(object):
         restart_button.grid()
         # Create a canvas widget
         self.canvas = tkinter.Canvas(parent, width=400, height=400)
+        self.canvas.configure(background=self.color)
         for i in range(0, 400, 100):
             for k in range(0, 400, 100):
-                self.canvas.create_rectangle(i, k, 100+i, 100+k,
-                                             outline='black', fill="yellow")
+                self.canvas.create_rectangle(i, k, 100+i, 100+k, fill="yellow")
                 self.canvas.create_image(50+i, 50+k, image=self.images[
                                          self.counter], state='hidden')
                 self.counter += 1
@@ -73,9 +74,11 @@ class MatchGame(object):
         self.canvas.bind("<Button-1>", self.play)
         self.canvas.grid()
         # Create a label widget for the score and end of game messages
+        self.label_endgame = tkinter.Label(parent, text='Game Over!')
         self.label_score = tkinter.Label(parent, text=f'Score: {self.score}')
         self.label_score.grid()
-        self.label_endgame = tkinter.Label(parent, text='Game Over!')
+        self.label_try = tkinter.Label(parent,
+                                       text=f'Number of tries: {self.click}')
         # Create any additional instance variable you need for the game
 
 
@@ -89,6 +92,7 @@ class MatchGame(object):
         """
         self.canvas.delete("all")
         self.counter = 0
+        self.matched = 0
         self.score = 100
         self.click = 0
         random.shuffle(self.images)
@@ -99,8 +103,9 @@ class MatchGame(object):
                 self.canvas.create_image(50+i, 50+k, image=self.images[
                                          self.counter], state='hidden')
                 self.counter += 1
-        self.label_score['text']=f'Score: {self.score}'
+        self.label_score['text'] = f'Score: {self.score}'
         self.label_endgame.grid_remove()
+        self.label_try.grid_remove()
 
     def play(self, event):
         """
@@ -109,14 +114,14 @@ class MatchGame(object):
         :param event: event (Event object) describing the click event
         :return: None
         """
-
+        if len(self.canvas.find_withtag('selected')) >= 2:
+            return 
         image = self.canvas.find_withtag(tkinter.CURRENT)
         if 'selected' in self.canvas.gettags(image):
             return
-        if 'matched' in self.canvas.gettags(image):
-            return 
+        if not image:
+            return
         image = (image[0]+1,)
-        print(image)
         if 'selected' not in self.canvas.gettags(image):
             self.canvas.itemconfigure(image, tag='selected', state='normal')
             print("show")
@@ -133,17 +138,17 @@ class MatchGame(object):
                         img2, 'image'):
                     print("True")
                     rect1 = self.canvas.find_below(img1)
-                    self.canvas.itemconfigure(rect1, fill='blue',
-                                              tag='matched')
                     rect2 = self.canvas.find_below(img2)
-                    self.canvas.itemconfigure(rect2, fill='blue',
-                                              tag='matched')
+                    # self.canvas.itemconfigure(rect1, fill='blue',
+                    #                           tag='matched')
+                    # self.canvas.itemconfigure(rect2, fill='blue',
+                    #                           tag='matched')
+                    self.canvas.delete(rect1)
+                    self.canvas.delete(rect2)
                     self.canvas.delete(img1)
                     self.canvas.delete(img2)
+                    self.matched += 2
                 else:
-                    if self.click > 13:
-                        self.score = 100-(self.click-13)*10
-                        self.label_score['text'] = f'Score: {self.score}'
                     self.canvas.itemconfigure(img1, tag='', state='hidden')
                     self.canvas.itemconfigure(img2, tag='', state='hidden')
                     print("False")
@@ -151,9 +156,17 @@ class MatchGame(object):
                 print('something wrong')
                 self.canvas.itemconfigure(img1, tag='')
                 self.canvas.itemconfigure(img2, tag='')
-        print(len(self.canvas.find_withtag('matched')))
-        if len(self.canvas.find_withtag('matched')) == 16:
+
+        print(self.click)
+        if self.click > 13:
+            self.score = 100 - (self.click - 13) * 10
+            self.label_score['text'] = f'Score: {self.score}'
+
+        if self.matched == 16:
             self.label_endgame.grid()
+            self.label_try['text'] = f'Number of tries: {self.click}'
+            self.label_try.grid()
+
 
 
     # Enter your additional method definitions below
@@ -197,7 +210,7 @@ def main():
     # Enter the main event loop
     root = tkinter.Tk()
     # Instantiate our painting app object
-    painting = MatchGame(root, 1, 'SJSUimages', True)
+    painting = MatchGame(root, 'blue', 'SJSUimages', True)
     # enter the main event loop and wait for events
     root.mainloop()
 
