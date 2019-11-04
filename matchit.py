@@ -2,7 +2,7 @@
 # Name:        matchit
 # Purpose:     Implement a single player matching game
 #
-# Author(s):
+# Author(s): Zhenting wan & Dev Patel
 # ----------------------------------------------------------------------
 """
 A single player matching game.
@@ -34,15 +34,16 @@ class MatchGame(object):
     delay (integer) how many milliseconds to wait before flipping a tile
 
     Attributes:
-    Please list ALL the instance variables here
+    score: the game score
+    click: the number that player flips the pairs of tiles
+    matched: the number of matched tiles
     """
 
     # Add your class variables if needed here - square size, etc...)
     score = 100
-    counter = 0
-    delay = 300
     click = 0
     matched = 0
+
     def __init__(self, parent, player_color, folder, delay):
         parent.title('Match it!')
         self.parent = parent
@@ -50,6 +51,7 @@ class MatchGame(object):
         self.folder = folder
         self.delay = delay
         self.images = []
+        counter = 0
         for f in os.listdir(folder):
             try:
                 self.images.append(tkinter.PhotoImage(file=folder+'/'+f))
@@ -57,7 +59,7 @@ class MatchGame(object):
                 pass
         self.images.extend(self.images)
         random.shuffle(self.images)
-            # Create the restart button widget
+        # Create the restart button widget
         restart_button = tkinter.Button(parent, text='Restart', width=20,
                                         command=self.restart)
         restart_button.grid()
@@ -68,8 +70,8 @@ class MatchGame(object):
             for k in range(0, 400, 100):
                 self.canvas.create_rectangle(i, k, 100+i, 100+k, fill="yellow")
                 self.canvas.create_image(50+i, 50+k, image=self.images[
-                                         self.counter], state='hidden')
-                self.counter += 1
+                                         counter], state='hidden')
+                counter += 1
 
         self.canvas.bind("<Button-1>", self.play)
         self.canvas.grid()
@@ -80,8 +82,6 @@ class MatchGame(object):
         self.label_try = tkinter.Label(parent,
                                        text=f'Number of tries: {self.click}')
         # Create any additional instance variable you need for the game
-
-
 
     def restart(self):
         """
@@ -114,8 +114,9 @@ class MatchGame(object):
         :param event: event (Event object) describing the click event
         :return: None
         """
+
         if len(self.canvas.find_withtag('selected')) >= 2:
-            return 
+            return
         image = self.canvas.find_withtag(tkinter.CURRENT)
         if 'selected' in self.canvas.gettags(image):
             return
@@ -126,9 +127,17 @@ class MatchGame(object):
             self.canvas.itemconfigure(image, tag='selected', state='normal')
             print("show")
             if len(self.canvas.find_withtag('selected')) == 2:
-                self.canvas.after(1000, lambda: self.match_check('selected'))
+                self.canvas.after(self.delay,
+                                  lambda: self.match_check('selected'))
 
     def match_check(self, select):
+        """
+        This method is used for check if two tiles are same. If two tiles
+        have same images then remove both images and shapes.
+        :param select: a string of the selected tiles' tag
+        :return: None
+        """
+
         if len(self.canvas.find_withtag(select)) == 2:
             img1 = self.canvas.find_withtag(select)[0]
             img2 = self.canvas.find_withtag(select)[1]
@@ -139,10 +148,6 @@ class MatchGame(object):
                     print("True")
                     rect1 = self.canvas.find_below(img1)
                     rect2 = self.canvas.find_below(img2)
-                    # self.canvas.itemconfigure(rect1, fill='blue',
-                    #                           tag='matched')
-                    # self.canvas.itemconfigure(rect2, fill='blue',
-                    #                           tag='matched')
                     self.canvas.delete(rect1)
                     self.canvas.delete(rect2)
                     self.canvas.delete(img1)
@@ -157,7 +162,6 @@ class MatchGame(object):
                 self.canvas.itemconfigure(img1, tag='')
                 self.canvas.itemconfigure(img2, tag='')
 
-        print(self.click)
         if self.click > 13:
             self.score = 100 - (self.click - 13) * 10
             self.label_score['text'] = f'Score: {self.score}'
@@ -167,19 +171,19 @@ class MatchGame(object):
             self.label_try['text'] = f'Number of tries: {self.click}'
             self.label_try.grid()
 
-
-
     # Enter your additional method definitions below
     # Make sure they are indented inside the MatchGame class
     # Make sure you include docstrings for all the methods.
 
 
-
 # Enter any function definitions here to get and validate the
 # command line arguments.  Include docstrings.
-
-
 def valid_dir(folder):
+    """
+    To check the validation of command line argument
+    :param folder: a string of folder name from command line input
+    :return: a string of folder name
+    """
     counter = 0
     if os.path.isdir(folder):
         for f in os.listdir(folder):
@@ -193,27 +197,38 @@ def valid_dir(folder):
     else:
         raise argparse.ArgumentTypeError(f'{folder} is not a valid folder')
 
+
 def main():
     # Retrieve and validate the command line arguments using argparse
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('color',
-    #                     help='{blue,green,magenta}What color would you like '
-    #                          'for the player',
-    #                     choices=['blue', 'green', 'magenta'])
-    # parser.add_argument('image_folder',
-    #                     help='What folder contains the game images')
-    # parser.add_argument('-f', '--fast',
-    #                     help='Fast or slow game?',
-    #                     action='store_true')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('color',
+                        help='What color would you like '
+                             'for the player',
+                        choices=['blue', 'green', 'magenta'])
+    parser.add_argument('image_folder',
+                        help='What folder contains the game images',
+                        type=valid_dir)
+    parser.add_argument('-f', '--fast',
+                        help='Fast or slow game?',
+                        action='store_true')
+
+    arguments = parser.parse_args()
+    color = arguments.color
+    folder = arguments.image_folder
+    fast = arguments.fast
+    delay = 3000
+    if fast:
+        delay = 1000
     # Instantiate a root window
-    # Instantiate a MatchGame object with the correct arguments
-    # Enter the main event loop
     root = tkinter.Tk()
+    # Instantiate a MatchGame object with the correct arguments
+    painting = MatchGame(root, color, folder, delay)
+    # Enter the main event loop
     # Instantiate our painting app object
-    painting = MatchGame(root, 'blue', 'SJSUimages', True)
     # enter the main event loop and wait for events
     root.mainloop()
 
+
 if __name__ == '__main__':
     main()
-    
+
