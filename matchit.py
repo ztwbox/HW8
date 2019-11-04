@@ -41,7 +41,7 @@ class MatchGame(object):
     score = 100
     counter = 0
     delay = 300
-
+    click = 0
     def __init__(self, parent, player_color, folder, delay):
         parent.title('Match it!')
         self.parent = parent
@@ -90,6 +90,7 @@ class MatchGame(object):
         self.canvas.delete("all")
         self.counter = 0
         self.score = 100
+        self.click = 0
         random.shuffle(self.images)
         for i in range(0, 400, 100):
             for k in range(0, 400, 100):
@@ -98,6 +99,8 @@ class MatchGame(object):
                 self.canvas.create_image(50+i, 50+k, image=self.images[
                                          self.counter], state='hidden')
                 self.counter += 1
+        self.label_score['text']=f'Score: {self.score}'
+        self.label_endgame.grid_remove()
 
     def play(self, event):
         """
@@ -107,36 +110,52 @@ class MatchGame(object):
         :return: None
         """
 
-        image = self.canvas.find_above(tkinter.CURRENT)
-
-        print(self.canvas.gettags(image))
+        image = self.canvas.find_withtag(tkinter.CURRENT)
+        if 'selected' in self.canvas.gettags(image):
+            return
+        if 'matched' in self.canvas.gettags(image):
+            return 
+        image = (image[0]+1,)
+        print(image)
         if 'selected' not in self.canvas.gettags(image):
             self.canvas.itemconfigure(image, tag='selected', state='normal')
             print("show")
-
-        self.canvas.after(1000, self.match_check('selected'))
+            if len(self.canvas.find_withtag('selected')) == 2:
+                self.canvas.after(1000, lambda: self.match_check('selected'))
 
     def match_check(self, select):
         if len(self.canvas.find_withtag(select)) == 2:
             img1 = self.canvas.find_withtag(select)[0]
             img2 = self.canvas.find_withtag(select)[1]
-            if self.canvas.itemcget(img1, 'image') == self.canvas.itemcget(
-                    img2, 'image'):
-                print("True")
-                rect = self.canvas.find_below(img1)
-                self.canvas.itemconfigure(rect, fill='blue')
-                rect = self.canvas.find_below(img2)
-                self.canvas.itemconfigure(rect, fill='blue')
-                self.canvas.delete(img1)
-                self.canvas.delete(img2)
-                print(self.canvas.find_withtag('selected'))
-            else:
-                self.canvas.itemconfigure(img1, tag='', state='hidden')
-                # self.canvas.after(1000, self.canvas.itemconfigure(img2,
-                #                                                  tag='',
-                #                                                  state='hidden'))
-                self.canvas.itemconfigure(img2, tag='', state='hidden')
-                print("False")
+            self.click += 1
+            try:
+                if self.canvas.itemcget(img1, 'image') == self.canvas.itemcget(
+                        img2, 'image'):
+                    print("True")
+                    rect1 = self.canvas.find_below(img1)
+                    self.canvas.itemconfigure(rect1, fill='blue',
+                                              tag='matched')
+                    rect2 = self.canvas.find_below(img2)
+                    self.canvas.itemconfigure(rect2, fill='blue',
+                                              tag='matched')
+                    self.canvas.delete(img1)
+                    self.canvas.delete(img2)
+                else:
+                    if self.click > 13:
+                        self.score = 100-(self.click-13)*10
+                        self.label_score['text'] = f'Score: {self.score}'
+                    self.canvas.itemconfigure(img1, tag='', state='hidden')
+                    self.canvas.itemconfigure(img2, tag='', state='hidden')
+                    print("False")
+            except Exception:
+                print('something wrong')
+                self.canvas.itemconfigure(img1, tag='')
+                self.canvas.itemconfigure(img2, tag='')
+        print(len(self.canvas.find_withtag('matched')))
+        if len(self.canvas.find_withtag('matched')) == 16:
+            self.label_endgame.grid()
+
+
     # Enter your additional method definitions below
     # Make sure they are indented inside the MatchGame class
     # Make sure you include docstrings for all the methods.
